@@ -7,19 +7,26 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+// ============================
+// CONFIGURAR HTTP CLIENT
+// ============================
+// Detecta si estás en Render o en local automáticamente
+string baseUrl;
 
-// =======================================================
-// CONFIGURACIÓN DEL HTTP CLIENT
-// =======================================================
+#if DEBUG
+baseUrl = "https://localhost:7069/"; // para Visual Studio local
+#else
+baseUrl = builder.HostEnvironment.BaseAddress; // para Render (usa la URL pública)
+#endif
+
 builder.Services.AddScoped(sp => new HttpClient
 {
-    BaseAddress = new Uri("https://localhost:7069/")
+    BaseAddress = new Uri(baseUrl)
 });
 
-
-// =======================================================
-// REGISTRO DE SERVICIOS PERSONALIZADOS
-// =======================================================
+// ============================
+// REGISTRAR SERVICIOS
+// ============================
 builder.Services.AddScoped<TripApiService>();
 builder.Services.AddScoped<ActivityApiService>();
 builder.Services.AddScoped<ExpenseApiService>();
