@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: plango-api
+    env: dotnet
+    runtime: dotnet
+    rootDir: PlanGo.API
+    buildCommand: dotnet publish -c Release -o out
+    startCommand: dotnet out/PlanGo.API.dll
+    plan: free
