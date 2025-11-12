@@ -2,7 +2,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY . .
-WORKDIR "/src/PlanGo.API"
+WORKDIR "/src/TravelOrganizer"
 RUN dotnet restore
 RUN dotnet publish -c Release -o /app/out
 
@@ -12,4 +12,5 @@ WORKDIR /app
 COPY --from=build /app/out .
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
-ENTRYPOINT ["dotnet", "PlanGo.API.dll"]
+ENTRYPOINT ["dotnet", "TravelOrganizer.dll"]
+
