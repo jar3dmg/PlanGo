@@ -1,35 +1,31 @@
-# ===========================================
-# Etapa 1: Compilación del proyecto (.NET SDK)
-# ===========================================
+# =======================================
+# Etapa 1: Compilar la API y el cliente
+# =======================================
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copiar archivos de proyecto y restaurar dependencias
+# Copiar y restaurar dependencias
 COPY ["TravelOrganizer/TravelOrganizer.csproj", "TravelOrganizer/"]
 COPY ["TravelOrganizer.Client/TravelOrganizer.Client.csproj", "TravelOrganizer.Client/"]
-
 RUN dotnet restore "TravelOrganizer/TravelOrganizer.csproj"
 
-# Copiar todo el código fuente
+# Copiar todo el código
 COPY . .
 
-# Compilar y publicar la aplicación
+# Publicar la API (que sirve el cliente también)
 WORKDIR "/src/TravelOrganizer"
 RUN dotnet publish -c Release -o /app/publish
 
-# ===========================================
-# Etapa 2: Imagen final para producción (más ligera)
-# ===========================================
+# =======================================
+# Etapa 2: Imagen final
+# =======================================
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
-
-# Copiar los archivos publicados desde la etapa anterior
 COPY --from=build /app/publish .
 
-# Configurar el puerto de ejecución (Render usa el 8080 por defecto)
+# Render usa el puerto 8080
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-# Ejecutar la aplicación
 ENTRYPOINT ["dotnet", "TravelOrganizer.dll"]
