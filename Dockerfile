@@ -1,34 +1,35 @@
-# =========================
-# ETAPA 1: Compilación del CLIENTE (Blazor)
-# =========================
-FROM mcr.microsoft.com/dotnet/sdk:8.0.403 AS build-client
+# ===========================================
+# Etapa 1: Compilación del proyecto (.NET SDK)
+# ===========================================
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY . .
-WORKDIR "/src/TravelOrganizer.Client"
-RUN dotnet restore
-RUN dotnet publish -c Release -o /app/client
 
-# =========================
-# ETAPA 2: Compilación de la API
-# =========================
-FROM mcr.microsoft.com/dotnet/sdk:8.0.403 AS build-api
-WORKDIR /src
+# Copiar archivos de proyecto y restaurar dependencias
+COPY ["TravelOrganizer/TravelOrganizer.csproj", "TravelOrganizer/"]
+COPY ["TravelOrganizer.Client/TravelOrganizer.Client.csproj", "TravelOrganizer.Client/"]
+
+RUN dotnet restore "TravelOrganizer/TravelOrganizer.csproj"
+
+# Copiar todo el código fuente
 COPY . .
+
+# Compilar y publicar la aplicación
 WORKDIR "/src/TravelOrganizer"
-RUN dotnet restore
-RUN dotnet publish -c Release -o /app/api
+RUN dotnet publish -c Release -o /app/publish
 
-# =========================
-# ETAPA 3: Servidor final combinado
-# =========================
-FROM mcr.microsoft.com/dotnet/aspnet:8.0.3 AS final
+# ===========================================
+# Etapa 2: Imagen final para producción (más ligera)
+# ===========================================
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 
-# Copiar la API publicada
-COPY --from=build-api /app/api ./
-# Copiar el cliente Blazor al wwwroot de la API
-COPY --from=build-client /app/client/wwwroot ./wwwroot
+# Copiar los archivos publicados desde la etapa anterior
+COPY --from=build /app/publish .
 
+# Configurar el puerto de ejecución (Render usa el 8080 por defecto)
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+# Ejecutar la aplicación
 ENTRYPOINT ["dotnet", "TravelOrganizer.dll"]
