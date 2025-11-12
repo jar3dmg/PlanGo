@@ -1,0 +1,240 @@
+﻿@page "/trips/create"
+@using System.ComponentModel.DataAnnotations
+@using TravelOrganizer.Client.Models
+@using TravelOrganizer.Client.Services
+@inject TripApiService TripService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="trip-create fade-in">
+    <h3 class="text-center mb-4 text-gradient fw-semibold">
+        <span class="bi bi-plus-circle me-2"></span> Nuevo Viaje ✈️
+    </h3>
+
+    @if (isSaving)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-light"></div>
+            <p class="mt-3 text-light opacity-75">Guardando viaje...</p>
+        </div>
+    }
+    else
+    {
+        <EditForm Model="trip" OnValidSubmit="SaveTrip">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-warning mb-3" />
+
+            <div class="form-card mx-auto">
+                <!-- Nombre -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nombre del viaje *</label>
+                    <InputText class="form-control input-styled" @bind-Value="trip.Name" />
+                    <ValidationMessage For="@(() => trip.Name)" class="text-warning small" />
+                </div>
+
+                <!-- Destino -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Destino *</label>
+                    <InputText class="form-control input-styled" @bind-Value="trip.Destination" />
+                    <ValidationMessage For="@(() => trip.Destination)" class="text-warning small" />
+                </div>
+
+                <!-- Fechas -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Fecha de inicio *</label>
+                        <InputDate class="form-control input-styled" @bind-Value="trip.StartDate" />
+                        <ValidationMessage For="@(() => trip.StartDate)" class="text-warning small" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Fecha de fin *</label>
+                        <InputDate class="form-control input-styled" @bind-Value="trip.EndDate" />
+                        <ValidationMessage For="@(() => trip.EndDate)" class="text-warning small" />
+                    </div>
+                </div>
+
+                <!-- Presupuesto -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Presupuesto (MXN)</label>
+                    <InputNumber class="form-control input-styled" @bind-Value="trip.Budget" />
+                    <ValidationMessage For="@(() => trip.Budget)" class="text-warning small" />
+                </div>
+
+                <!-- Notas -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Notas adicionales</label>
+                    <InputTextArea class="form-control input-styled" @bind-Value="trip.Notes" Rows="3" />
+                </div>
+
+                <!-- Botones -->
+                <div class="text-end mt-4">
+                    <button type="button" class="btn btn-outline-light me-2"
+                            @onclick="@(() => Nav.NavigateTo("/trips"))">
+                        <span class="bi bi-arrow-left-circle"></span> Cancelar
+                    </button>
+
+                    <button type="submit" class="btn btn-gradient">
+                        <span class="bi bi-save"></span> Guardar
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    private TripInputModel trip = new();
+    private bool isSaving = false;
+
+    private async Task SaveTrip()
+    {
+        try
+        {
+            isSaving = true;
+
+            var dto = new TripPostDto
+                {
+                    Name = trip.Name,
+                    Destination = trip.Destination,
+                    StartDate = DateOnly.FromDateTime(trip.StartDate),
+                    EndDate = DateOnly.FromDateTime(trip.EndDate),
+                    Budget = trip.Budget,
+                    Notes = trip.Notes
+                };
+
+            await TripService.CreateTripAsync(dto);
+            isSaving = false;
+
+            await JS.InvokeVoidAsync("alert", "✅ Viaje guardado correctamente.");
+            Nav.NavigateTo("/trips");
+
+        }
+        catch (Exception ex)
+        {
+            isSaving = false;
+            Console.WriteLine($"Error al guardar viaje: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "⚠️ Ocurrió un error inesperado al guardar el viaje.");
+        }
+    }
+
+    private class TripInputModel
+    {
+        [Required(ErrorMessage = "El nombre del viaje es obligatorio.")]
+        [StringLength(100, ErrorMessage = "Máximo 100 caracteres.")]
+        public string? Name { get; set; }
+
+        [Required(ErrorMessage = "El destino es obligatorio.")]
+        [StringLength(100, ErrorMessage = "Máximo 100 caracteres.")]
+        public string? Destination { get; set; }
+
+        [Required(ErrorMessage = "La fecha de inicio es obligatoria.")]
+        public DateTime StartDate { get; set; } = DateTime.Today;
+
+        [Required(ErrorMessage = "La fecha de fin es obligatoria.")]
+        public DateTime EndDate { get; set; } = DateTime.Today;
+
+        [Range(0, 10000000, ErrorMessage = "El presupuesto no puede ser negativo.")]
+        public decimal Budget { get; set; } = 0;
+
+        public string? Notes { get; set; }
+    }
+}
+
+<style>
+    :root {
+        --azul-oscuro: #0b132b;
+        --morado: #6a5acd;
+        --azul: #4f9ef8;
+        --texto-claro: #e4e9ff;
+    }
+
+    body {
+        background-color: var(--azul-oscuro);
+        color: var(--texto-claro);
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .trip-create {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 90vh;
+        padding: 2rem;
+    }
+
+    .form-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(8px);
+        border-radius: 15px;
+        padding: 2rem;
+        width: 100%;
+        max-width: 750px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+        color: #f0f3ff;
+    }
+
+    .text-gradient {
+        background: linear-gradient(90deg, var(--morado), var(--azul));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .input-styled {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        border-radius: 8px;
+        transition: all 0.25s ease;
+    }
+
+        .input-styled:focus {
+            border-color: var(--azul);
+            box-shadow: 0 0 0 3px rgba(79, 158, 248, 0.3);
+        }
+
+    .btn-gradient {
+        background: linear-gradient(90deg, var(--azul), var(--morado));
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.2rem;
+        transition: all 0.25s ease;
+        font-weight: 500;
+    }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(108, 99, 255, 0.3);
+        }
+
+    .btn-outline-light {
+        color: #e4e9ff;
+        border-color: rgba(255, 255, 255, 0.4);
+    }
+
+        .btn-outline-light:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+    .text-warning {
+        color: #ffd166 !important;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.4s ease-in-out;
+    }
+</style>

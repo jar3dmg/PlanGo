@@ -1,0 +1,269 @@
+﻿@page "/trips/{id:int}"
+@using TravelOrganizer.Client.Models
+@using TravelOrganizer.Client.Services
+@inject TripApiService TripService
+@inject ActivityApiService ActivityService
+@inject ExpenseApiService ExpenseService
+@inject NavigationManager Nav
+
+<div class="trip-details fade-in">
+    @if (isLoading)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-light"></div>
+            <p class="mt-3 text-light opacity-75">Cargando información del viaje...</p>
+        </div>
+    }
+    else if (trip is null)
+    {
+        <div class="alert alert-danger text-center mt-5 shadow-sm">
+            <strong>❌ No se encontró el viaje solicitado.</strong>
+            <div class="mt-3">
+                <button class="btn btn-outline-light" @onclick="@(() => Nav.NavigateTo("/trips"))">
+                    <span class="bi bi-arrow-left-circle"></span> Volver al listado
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- ====== DETALLES PRINCIPALES DEL VIAJE ====== -->
+        <div class="card main-card mx-auto">
+            <div class="card-body">
+                <h3 class="fw-semibold text-gradient mb-3">
+                    <span class="bi bi-geo-alt-fill me-2"></span>@trip.Name
+                </h3>
+                <p><strong>Destino:</strong> @(trip.Destination ?? "No especificado")</p>
+                <p><strong>Inicio:</strong> @(trip.StartDate == default ? "No definida" : trip.StartDate.ToString("dd/MM/yyyy"))</p>
+                <p><strong>Fin:</strong> @(trip.EndDate == default ? "No definida" : trip.EndDate.ToString("dd/MM/yyyy"))</p>
+                <p><strong>Presupuesto:</strong> @(trip.Budget <= 0 ? "Sin asignar" : $"${trip.Budget:N0}")</p>
+                <p><strong>Notas:</strong> @(string.IsNullOrWhiteSpace(trip.Notes) ? "Sin notas" : trip.Notes)</p>
+
+                <div class="text-end mt-4">
+                    <button class="btn btn-outline-light me-2" @onclick="@(() => Nav.NavigateTo("/trips"))">
+                        <span class="bi bi-arrow-left-circle"></span> Volver
+                    </button>
+                    <button class="btn btn-gradient" @onclick="EditTrip">
+                        <span class="bi bi-pencil-square"></span> Editar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== ACTIVIDADES ====== -->
+        <div class="section-card mt-5">
+            <h5 class="section-title text-info">
+                <span class="bi bi-calendar-event me-2"></span> Actividades recientes
+            </h5>
+
+            @if (activities is null || !activities.Any())
+            {
+                <p class="text-light opacity-75">No hay actividades registradas aún.</p>
+            }
+            else
+            {
+                <ul class="list-group mb-3">
+                    @foreach (var act in activities.Take(3))
+                    {
+                        <li class="list-group-item shadow-sm mb-2 rounded-3 bg-dark-item">
+                            <div class="fw-bold">@(!string.IsNullOrWhiteSpace(act.Title) ? act.Title : "Sin título")</div>
+                            <small class="text-light opacity-75">
+                                @(string.IsNullOrWhiteSpace(act.Location) ? "Sin ubicación" : act.Location) |
+                                @SafeDateRange(act.StartDateTime, act.EndDateTime)
+                            </small>
+                            @if (act.Cost > 0)
+                            {
+                                <div class="text-end text-success fw-bold mt-1">
+                                    $@act.Cost
+                                </div>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+
+            <button class="btn btn-outline-info btn-sm" @onclick="@(() => Nav.NavigateTo($"/activities/{id}"))">
+                Ver todas las actividades
+            </button>
+        </div>
+
+        <!-- ====== GASTOS ====== -->
+        <div class="section-card mt-5">
+            <h5 class="section-title text-success">
+                <span class="bi bi-cash-stack me-2"></span> Gastos recientes
+            </h5>
+
+            @if (expenses is null || !expenses.Any())
+            {
+                <p class="text-light opacity-75">No hay gastos registrados aún.</p>
+            }
+            else
+            {
+                <ul class="list-group mb-3">
+                    @foreach (var ex in expenses.Take(3))
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center shadow-sm mb-2 rounded-3 bg-dark-item">
+                            <span>@(string.IsNullOrWhiteSpace(ex.Description) ? "Sin descripción" : ex.Description)</span>
+                            <span class="fw-bold text-success">$@ex.Amount</span>
+                        </li>
+                    }
+                </ul>
+            }
+
+            <button class="btn btn-outline-success btn-sm" @onclick="@(() => Nav.NavigateTo($"/expenses/{id}"))">
+                Ver todos los gastos
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int id { get; set; }
+
+    private TripGetDto? trip;
+    private List<ActivityGetDto> activities = new();
+    private List<ExpenseGetDto> expenses = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            trip = await TripService.GetTripByIdAsync(id);
+            activities = await ActivityService.GetByTripIdAsync(id) ?? new();
+            expenses = await ExpenseService.GetByTripIdAsync(id) ?? new();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string SafeDateRange(DateTime start, DateTime end)
+    {
+        if (start == default && end == default) return "Sin horario";
+        if (start == default) return $"Hasta {end:dd/MM HH:mm}";
+        if (end == default) return $"{start:dd/MM HH:mm}";
+        return $"{start:dd/MM HH:mm} - {end:HH:mm}";
+    }
+
+    private void EditTrip() => Nav.NavigateTo($"/trips/edit/{id}");
+}
+
+<style>
+    :root {
+        --azul-oscuro: #0b132b;
+        --morado: #6a5acd;
+        --azul: #4f9ef8;
+        --texto-claro: #e4e9ff;
+    }
+
+    body {
+        background-color: var(--azul-oscuro);
+        color: var(--texto-claro);
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .trip-details {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 1.5rem;
+        border-radius: 14px;
+        backdrop-filter: blur(6px);
+    }
+
+    .main-card {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--texto-claro);
+        border-radius: 14px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+        transition: all 0.3s ease;
+    }
+
+        .main-card:hover {
+            transform: translateY(-3px);
+        }
+
+    .section-card {
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 14px;
+        padding: 1.5rem;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease;
+        color: var(--texto-claro);
+    }
+
+        .section-card:hover {
+            transform: translateY(-2px);
+        }
+
+    .bg-dark-item {
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--texto-claro);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .text-gradient {
+        background: linear-gradient(90deg, var(--morado), var(--azul));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .btn-gradient {
+        background: linear-gradient(90deg, var(--azul), var(--morado));
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.55rem 1.2rem;
+        font-weight: 500;
+        transition: all 0.25s ease;
+    }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(108, 99, 255, 0.3);
+        }
+
+    .btn-outline-light,
+    .btn-outline-info,
+    .btn-outline-success {
+        border-color: rgba(255, 255, 255, 0.3);
+        color: var(--texto-claro);
+        transition: all 0.3s ease;
+    }
+
+        .btn-outline-light:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .btn-outline-info:hover {
+            background-color: #0dcaf0;
+            color: white;
+        }
+
+        .btn-outline-success:hover {
+            background-color: #198754;
+            color: white;
+        }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.4s ease-in-out;
+    }
+
+    .list-group-item {
+        border: none;
+    }
+</style>

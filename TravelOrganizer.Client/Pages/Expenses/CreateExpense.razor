@@ -1,0 +1,235 @@
+﻿@page "/expenses/create/{tripId:int}"
+@using System.ComponentModel.DataAnnotations
+@using TravelOrganizer.Client.Models
+@using TravelOrganizer.Client.Services
+@inject ExpenseApiService ExpenseService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="expense-form fade-in">
+    <h3 class="text-center mb-4 text-gradient fw-semibold">
+        <span class="bi bi-wallet2 me-2"></span> Nuevo Gasto 💰
+    </h3>
+
+    @if (isSaving)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-light" role="status"></div>
+            <p class="mt-3 text-light opacity-75">Guardando gasto...</p>
+        </div>
+    }
+    else
+    {
+        <EditForm Model="expense" OnValidSubmit="SaveExpense">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-warning mb-3" />
+
+            <div class="form-card mx-auto">
+                <!-- Descripción -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Descripción *</label>
+                    <InputText class="form-control input-styled" @bind-Value="expense.Description" />
+                    <ValidationMessage For="@(() => expense.Description)" class="text-warning small" />
+                </div>
+
+                <!-- Monto -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Monto (MXN) *</label>
+                    <InputNumber class="form-control input-styled" @bind-Value="expense.Amount" />
+                    <ValidationMessage For="@(() => expense.Amount)" class="text-warning small" />
+                </div>
+
+                <!-- Fecha -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Fecha *</label>
+                    <InputDate class="form-control input-styled" @bind-Value="expense.Date" />
+                    <ValidationMessage For="@(() => expense.Date)" class="text-warning small" />
+                </div>
+
+                <!-- Notas -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Notas adicionales</label>
+                    <InputTextArea class="form-control input-styled" @bind-Value="expense.Notes" Rows="3" />
+                </div>
+
+                <!-- Botones -->
+                <div class="text-end mt-4">
+                    <button type="button" class="btn btn-outline-light me-2"
+                            @onclick="@(() => Nav.NavigateTo($"/expenses/{tripId}"))">
+                        <span class="bi bi-arrow-left-circle"></span> Cancelar
+                    </button>
+
+                    <button type="submit" class="btn btn-gradient">
+                        <span class="bi bi-save"></span> Guardar
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [Parameter] public int tripId { get; set; }
+    private ExpenseInputModel expense = new();
+    private bool isSaving = false;
+
+    protected override void OnInitialized()
+    {
+        expense.TripId = tripId;
+        expense.Amount = 0; // Inicializado en 0 por defecto
+        expense.Date = DateTime.Today;
+    }
+
+    private async Task SaveExpense()
+    {
+        try
+        {
+            isSaving = true;
+
+            var dto = new ExpensePostDto
+                {
+                    TripId = expense.TripId,
+                    Description = expense.Description,
+                    Amount = expense.Amount,
+                    Date = DateOnly.FromDateTime(expense.Date),
+                    Notes = expense.Notes
+                };
+
+
+            var success = await ExpenseService.CreateAsync(dto);
+            isSaving = false;
+
+            if (success)
+            {
+                await JS.InvokeVoidAsync("alert", "✅ Gasto guardado correctamente.");
+                Nav.NavigateTo($"/expenses/{tripId}");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "❌ No se pudo guardar el gasto.");
+            }
+        }
+        catch (Exception ex)
+        {
+            isSaving = false;
+            Console.WriteLine($"Error al guardar gasto: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "⚠️ Error inesperado al guardar.");
+        }
+    }
+
+    private class ExpenseInputModel
+    {
+        public int TripId { get; set; }
+
+        [Required(ErrorMessage = "La descripción es obligatoria.")]
+        [StringLength(100, ErrorMessage = "La descripción no puede superar los 100 caracteres.")]
+        public string? Description { get; set; }
+
+        [Range(0, 1000000, ErrorMessage = "El monto no puede ser negativo.")]
+        public decimal Amount { get; set; } = 0;
+
+        [Required(ErrorMessage = "La fecha es obligatoria.")]
+        public DateTime Date { get; set; }
+
+        public string? Notes { get; set; }
+    }
+}
+
+<style>
+    :root {
+        --azul-oscuro: #0b132b;
+        --morado: #6a5acd;
+        --azul: #4f9ef8;
+        --texto-claro: #e4e9ff;
+    }
+
+    body {
+        background-color: var(--azul-oscuro);
+        color: var(--texto-claro);
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .expense-form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        min-height: 90vh;
+    }
+
+    .form-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(8px);
+        border-radius: 15px;
+        padding: 2rem;
+        width: 100%;
+        max-width: 700px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+        color: #f0f3ff;
+    }
+
+    .text-gradient {
+        background: linear-gradient(90deg, var(--morado), var(--azul));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .input-styled {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        border-radius: 8px;
+        transition: all 0.25s ease;
+    }
+
+        .input-styled:focus {
+            border-color: var(--azul);
+            box-shadow: 0 0 0 3px rgba(79, 158, 248, 0.3);
+        }
+
+    .btn-gradient {
+        background: linear-gradient(90deg, var(--azul), var(--morado));
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.2rem;
+        transition: all 0.25s ease;
+        font-weight: 500;
+    }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(108, 99, 255, 0.3);
+        }
+
+    .btn-outline-light {
+        color: #e4e9ff;
+        border-color: rgba(255, 255, 255, 0.4);
+    }
+
+        .btn-outline-light:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+    .text-warning {
+        color: #ffd166 !important;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.4s ease-in-out;
+    }
+</style>

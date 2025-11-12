@@ -1,0 +1,117 @@
+﻿@inject NavigationManager Nav
+
+<div class="sidebar d-flex flex-column align-items-center justify-content-center text-center">
+    <!-- Ícono -->
+    <a href="/" class="brand-icon text-decoration-none text-white fs-2 mb-3 d-block">
+        <span class="bi bi-globe-americas"></span>
+    </a>
+
+    <!-- Mensaje central -->
+    <p class="brand-name fw-bold mb-4">PlanGo 🌍</p>
+
+    <!-- Menú principal -->
+    <nav class="nav-menu w-100">
+        <NavLink class="menu-link fw-semibold" href="/" Match="NavLinkMatch.All">
+            <span class="bi bi-house-door me-2"></span> Inicio
+        </NavLink>
+        <NavLink class="menu-link fw-semibold" href="/trips">
+            <span class="bi bi-airplane me-2"></span> Viajes
+        </NavLink>
+    </nav>
+</div>
+
+<style>
+    /* ===== CONTENEDOR PRINCIPAL ===== */
+    .sidebar {
+        background-color: #1a1b2e;
+        width: 220px;
+        height: 100vh;
+        padding: 2rem 1rem;
+        position: fixed;
+        top: 0;
+        left: 0;
+        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+    }
+
+    /* ===== ÍCONO Y NOMBRE ===== */
+    .brand-icon {
+        color: #ffffff;
+        transition: transform 0.3s ease;
+    }
+
+        .brand-icon:hover {
+            transform: scale(1.1);
+        }
+
+    .brand-name {
+        color: #ffffff;
+        font-size: 1.1rem;
+        letter-spacing: 0.5px;
+        text-shadow: 0 0 6px rgba(100, 180, 255, 0.4);
+    }
+
+    /* ===== MENÚ ===== */
+    .nav-menu {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        margin-top: 1rem;
+    }
+
+    .menu-link {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        color: #d1d1e0 !important;
+        text-decoration: none;
+        font-size: 0.95rem;
+        padding: 10px 14px;
+        border-radius: 8px;
+        margin: 5px 0;
+        transition: all 0.25s ease;
+    }
+
+        .menu-link:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff !important;
+            transform: translateX(4px);
+        }
+
+        .menu-link.active {
+            background: linear-gradient(90deg, #6c63ff, #4f9ef8);
+            color: #ffffff !important;
+            font-weight: 700;
+            box-shadow: 0 2px 6px rgba(108, 99, 255, 0.3);
+        }
+
+        .menu-link .bi {
+            font-size: 1.1rem;
+        }
+
+    /* ===== RESPONSIVO ===== */
+    @@media (max-width: 992px) {
+        .sidebar {
+            position: relative;
+            width: 100%;
+            height: auto;
+            flex-direction: row;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0.8rem 1.2rem;
+            background-color: #1a1b2e;
+        }
+
+        .nav-menu {
+            flex-direction: row;
+            justify-content: center;
+            gap: 1rem;
+            margin: 0;
+        }
+
+        .brand-name {
+            display: none;
+        }
+    }
+</style>
+6

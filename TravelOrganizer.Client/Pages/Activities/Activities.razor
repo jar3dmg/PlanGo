@@ -1,0 +1,269 @@
+﻿@page "/activities/{tripId:int}"
+@using System.Globalization
+@using TravelOrganizer.Client.Models
+@using TravelOrganizer.Client.Services
+@inject ActivityApiService ActivityService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="activities-page fade-in">
+    <h3 class="text-center mb-4 text-gradient fw-semibold">
+        <span class="bi bi-calendar-event me-2"></span> Actividades del viaje
+    </h3>
+
+    <div class="form-card mx-auto">
+        <div class="text-end mb-3">
+            <button class="btn btn-gradient me-2" @onclick="@(() => Nav.NavigateTo($"/activities/create/{tripId}"))">
+                <span class="bi bi-plus-circle me-1"></span> Nueva actividad
+            </button>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="text-center mt-5">
+                <div class="spinner-border text-light"></div>
+                <p class="mt-3 text-light opacity-75">Cargando actividades...</p>
+            </div>
+        }
+        else if (activities is null || !activities.Any())
+        {
+            <div class="text-center mt-5 text-light opacity-75">
+                <span class="bi bi-emoji-neutral fs-1 d-block mb-2"></span>
+                <p>No hay actividades registradas para este viaje.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-container">
+                <table class="activity-table align-middle text-center mb-0">
+                    <thead>
+                        <tr>
+                            <th>Título</th>
+                            <th>Ubicación</th>
+                            <th>Inicio</th>
+                            <th>Fin</th>
+                            <th>Costo</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in activities)
+                        {
+                            <tr>
+                                <td>@a.Title</td>
+                                <td>@(a.Location ?? "No especificada")</td>
+                                <td>@a.StartDateTime.ToString("dd/MM HH:mm")</td>
+                                <td>@a.EndDateTime.ToString("dd/MM HH:mm")</td>
+                                <td class="text-success fw-semibold">@Money(a.Cost)</td>
+                                <td>
+                                    <button class="btn btn-outline-light btn-sm me-2"
+                                            @onclick="@(() => Nav.NavigateTo($"/activities/details/{a.Id}"))">
+                                        <span class="bi bi-eye me-1"></span> Ver
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm"
+                                            @onclick="@(() => DeleteActivity(a.Id, a.Title))">
+                                        <span class="bi bi-trash me-1"></span> Eliminar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="bottom-button text-center mt-5">
+        <button class="btn btn-outline-light"
+                @onclick="@(() => Nav.NavigateTo($"/trips/{tripId}"))">
+            <span class="bi bi-arrow-left-circle"></span> Volver al viaje
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int tripId { get; set; }
+    private List<ActivityGetDto> activities = new();
+    private bool isLoading = true;
+    private static readonly CultureInfo _mx = new("es-MX");
+
+    private static string Money(decimal? v)
+        => string.Format(_mx, "${0:N0}", v ?? 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            activities = await ActivityService.GetByTripIdAsync(tripId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar actividades: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "❌ Error al cargar las actividades.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task DeleteActivity(int id, string title)
+    {
+        var confirm = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar '{title}'?");
+        if (!confirm) return;
+
+        try
+        {
+            if (await ActivityService.DeleteAsync(id))
+            {
+                activities.RemoveAll(x => x.Id == id);
+                await JS.InvokeVoidAsync("alert", "✅ Actividad eliminada correctamente.");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "❌ No se pudo eliminar la actividad.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al eliminar actividad: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "⚠️ Ocurrió un error inesperado.");
+        }
+    }
+}
+
+<style>
+    :root {
+        --azul-oscuro: #0b132b;
+        --morado: #6a5acd;
+        --azul: #4f9ef8;
+        --texto-claro: #ffffff;
+    }
+
+    body {
+        background-color: var(--azul-oscuro);
+        color: var(--texto-claro);
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .activities-page {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2rem;
+        min-height: 90vh;
+    }
+
+    .form-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(8px);
+        border-radius: 15px;
+        padding: 2rem;
+        width: 100%;
+        max-width: 950px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+    }
+
+    .text-gradient {
+        background: linear-gradient(90deg, var(--morado), var(--azul));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* Tabla unificada con el fondo */
+    .activity-table {
+        width: 100%;
+        border-collapse: collapse;
+        border-radius: 12px;
+        overflow: hidden;
+        background-color: var(--azul-oscuro);
+        color: var(--texto-claro);
+    }
+
+        .activity-table thead {
+            background: linear-gradient(90deg, var(--morado), var(--azul));
+            color: white;
+            font-weight: 600;
+        }
+
+        .activity-table th,
+        .activity-table td {
+            padding: 0.9rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .activity-table tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            transition: background-color 0.3s ease;
+        }
+
+    /* Botones */
+    .btn-gradient {
+        background: linear-gradient(90deg, var(--azul), var(--morado));
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.2rem;
+        font-weight: 500;
+        transition: all 0.25s ease;
+    }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(108, 99, 255, 0.3);
+        }
+
+    .btn-outline-light {
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        border-radius: 8px;
+        padding: 0.4rem 0.9rem;
+        transition: all 0.25s ease;
+    }
+
+        .btn-outline-light:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+    .btn-outline-danger {
+        color: #ffb3b3;
+        border: 1px solid rgba(255, 99, 99, 0.6);
+        border-radius: 8px;
+        padding: 0.4rem 0.9rem;
+        transition: all 0.25s ease;
+    }
+
+        .btn-outline-danger:hover {
+            background-color: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+
+    .text-success {
+        color: #00ff9c !important;
+        font-weight: 600;
+    }
+
+    .bottom-button {
+        margin-top: auto;
+        padding-bottom: 2rem;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.4s ease-in-out;
+    }
+</style>

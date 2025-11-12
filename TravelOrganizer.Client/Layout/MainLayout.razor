@@ -1,0 +1,67 @@
+﻿@inherits LayoutComponentBase
+
+<div class="layout-container">
+    <main class="main-content">
+        <div class="page-content fade-in">
+            @Body
+        </div>
+    </main>
+</div>
+
+<style>
+    /* ===== FONDO GENERAL ===== */
+    .layout-container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: #0b132b; /* azul oscuro elegante */
+        font-family: 'Segoe UI', sans-serif;
+        color: #e9f2ff;
+    }
+
+    /* ===== CONTENIDO PRINCIPAL ===== */
+    .main-content {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 2rem 1rem;
+    }
+
+    /* ===== CONTENEDOR CENTRAL ===== */
+    .page-content {
+        width: 100%;
+        max-width: 900px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        animation: fadeIn 0.4s ease-in-out;
+    }
+
+    /* ===== ANIMACIÓN ===== */
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.4s ease-in-out;
+    }
+
+    /* ===== RESPONSIVO ===== */
+    @@media (max-width: 768px) {
+        .page-content {
+            padding: 1.5rem;
+            max-width: 100%;
+        }
+    }
+</style>

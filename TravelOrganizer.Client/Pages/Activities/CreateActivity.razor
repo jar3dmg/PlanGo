@@ -1,0 +1,238 @@
+﻿@page "/activities/create/{tripId:int}"
+@using System.ComponentModel.DataAnnotations
+@using TravelOrganizer.Client.Models
+@using TravelOrganizer.Client.Services
+@inject ActivityApiService ActivityService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="activity-form fade-in">
+    <h3 class="text-center mb-4 text-gradient fw-semibold">
+        <span class="bi bi-plus-circle me-2"></span> Nueva Actividad
+    </h3>
+
+    <EditForm Model="activity" OnValidSubmit="SaveActivity">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-warning mb-3" />
+
+        <div class="form-card mx-auto">
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Título *</label>
+                    <InputText class="form-control input-styled" @bind-Value="activity.Title" />
+                    <ValidationMessage For="@(() => activity.Title)" class="text-warning small" />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Ubicación *</label>
+                    <InputText class="form-control input-styled" @bind-Value="activity.Location" />
+                    <ValidationMessage For="@(() => activity.Location)" class="text-warning small" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Inicio *</label>
+                    <InputDate class="form-control input-styled" @bind-Value="activity.StartDateTime" />
+                    <ValidationMessage For="@(() => activity.StartDateTime)" class="text-warning small" />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Fin *</label>
+                    <InputDate class="form-control input-styled" @bind-Value="activity.EndDateTime" />
+                    <ValidationMessage For="@(() => activity.EndDateTime)" class="text-warning small" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Costo (MXN)</label>
+                <InputNumber class="form-control input-styled" @bind-Value="activity.Cost" />
+                <ValidationMessage For="@(() => activity.Cost)" class="text-warning small" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Notas</label>
+                <InputTextArea class="form-control input-styled" @bind-Value="activity.Notes" Rows="3" />
+            </div>
+
+            <div class="text-end mt-4">
+                <button type="button" class="btn btn-outline-light me-2"
+                        @onclick="@(() => Nav.NavigateTo($"/activities/{tripId}"))">
+                    <span class="bi bi-arrow-left-circle"></span> Cancelar
+                </button>
+
+                <button type="submit" class="btn btn-gradient">
+                    <span class="bi bi-save"></span> Guardar
+                </button>
+            </div>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public int tripId { get; set; }
+
+    private ActivityInputModel activity = new();
+
+    protected override void OnInitialized()
+    {
+        activity.TripId = tripId;
+    }
+
+    private async Task SaveActivity()
+    {
+        try
+        {
+            bool ok = await ActivityService.CreateAsync(activity.ToDto());
+            if (ok)
+            {
+                await JS.InvokeVoidAsync("alert", "✅ Actividad guardada correctamente.");
+                Nav.NavigateTo($"/activities/{tripId}");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "❌ Error al guardar la actividad.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al guardar: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "⚠️ Ocurrió un error inesperado.");
+        }
+    }
+
+    // Clase intermedia para validaciones
+    private class ActivityInputModel
+    {
+        public int TripId { get; set; }
+
+        [Required(ErrorMessage = "El título es obligatorio.")]
+        [StringLength(100, ErrorMessage = "El título no puede superar los 100 caracteres.")]
+        public string? Title { get; set; }
+
+        [Required(ErrorMessage = "La ubicación es obligatoria.")]
+        public string? Location { get; set; }
+
+        [Required(ErrorMessage = "Debe especificar la fecha de inicio.")]
+        public DateTime StartDateTime { get; set; }
+
+        [Required(ErrorMessage = "Debe especificar la fecha de fin.")]
+        public DateTime EndDateTime { get; set; }
+
+        [Range(0, 1000000, ErrorMessage = "El costo no puede ser negativo.")]
+        public decimal? Cost { get; set; }
+
+        public string? Notes { get; set; }
+
+        public ActivityPostDto ToDto() => new()
+            {
+                TripId = TripId,
+                Title = Title,
+                Location = Location,
+                StartDateTime = StartDateTime,
+                EndDateTime = EndDateTime,
+                Cost = Cost ?? 0,
+                Notes = Notes
+            };
+    }
+}
+
+<style>
+    :root {
+        --azul-oscuro: #0b132b;
+        --morado: #6a5acd;
+        --azul: #4f9ef8;
+        --texto-claro: #e4e9ff;
+    }
+
+    body {
+        background-color: var(--azul-oscuro);
+        color: var(--texto-claro);
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .activity-form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        min-height: 90vh;
+    }
+
+    .form-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(8px);
+        border-radius: 15px;
+        padding: 2rem;
+        width: 100%;
+        max-width: 700px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+        color: #f0f3ff;
+    }
+
+    .text-gradient {
+        background: linear-gradient(90deg, var(--morado), var(--azul));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .input-styled {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        border-radius: 8px;
+        transition: all 0.25s ease;
+    }
+
+        .input-styled:focus {
+            border-color: var(--azul);
+            box-shadow: 0 0 0 3px rgba(79, 158, 248, 0.3);
+        }
+
+    .btn-gradient {
+        background: linear-gradient(90deg, var(--azul), var(--morado));
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.2rem;
+        transition: all 0.25s ease;
+        font-weight: 500;
+    }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(108, 99, 255, 0.3);
+        }
+
+    .btn-outline-light {
+        color: #e4e9ff;
+        border-color: rgba(255, 255, 255, 0.4);
+    }
+
+        .btn-outline-light:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+    .text-warning {
+        color: #ffd166 !important;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.4s ease-in-out;
+    }
+</style>
